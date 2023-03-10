@@ -10,7 +10,6 @@
 #  Please do not copy under any circumstance for commercial reason!  #
 ######################################################################
 
-rm -rf install
 apt update -y
 apt upgrade -y
 apt autoremove -y
