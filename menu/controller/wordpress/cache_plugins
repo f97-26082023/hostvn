@@ -74,7 +74,7 @@ _set_cache_config() {
         set_cache="include ${NGINX_CONF_DIR}/wordpress/wpfc.conf;"
         rewrite=""
     elif [[ "${plugins_cache}" == "wprocket" ]]; then
-        set_cache="include ${NGINX_CONF_DIR}/rocket-nginx/default.conf;"
+        set_cache="include ${NGINX_CONF_DIR}/extra/rocket_nginx.conf;"
     elif [[ "${plugins_cache}" == "wpsc" ]]; then
         set_cache="include ${NGINX_CONF_DIR}/wordpress/wpsc.conf;"
         rewrite=""
@@ -146,6 +146,7 @@ _added_cache_config() {
         expired_date=$(echo "(" "$(date -d "$(openssl x509 -in "${SSL_DIR}"/"${domain}"/cert.pem -text -noout | grep "Not After" | cut -c 25-)" +%s)" - "$(date -d "now" +%s)" ")" / 86400 | bc)
         if [[ -n ${expired_date} && ${expired_date} -gt 0 ]]; then
             sed -i '/return 404;/d' "${VHOST_DIR}"/"${domain}".conf
+            sed -i '/error_page 404/d' "${VHOST_DIR}"/"${domain}".conf
             sed -i "/listen 80;/a include ${NGINX_CONF_DIR}/extra/https.conf;" "${VHOST_DIR}"/"${domain}".conf
             sed -i "s|ssl_certificate ${SSL_DIR}/server/server.crt;|ssl_certificate ${SSL_DIR}/${domain}/cert.pem;|g" "${VHOST_DIR}"/"${domain}".conf
             sed -i "s|ssl_certificate_key ${SSL_DIR}/server/server.key;|ssl_certificate_key ${SSL_DIR}/${domain}/key.pem;|g" "${VHOST_DIR}"/"${domain}".conf
@@ -156,6 +157,7 @@ _added_cache_config() {
         expired_date=$(echo "(" "$(date -d "$(openssl x509 -in "${SSL_DIR}"/"${domain}"/paid/cert.pem -text -noout | grep "Not After" | cut -c 25-)" +%s)" - "$(date -d "now" +%s)" ")" / 86400 | bc)
         if [[ -n ${expired_date} && ${expired_date} -gt 0 ]]; then
             sed -i '/return 404;/d' "${VHOST_DIR}"/"${domain}".conf
+            sed -i '/error_page 404/d' "${VHOST_DIR}"/"${domain}".conf
             sed -i '/https.conf;/d' "${VHOST_DIR}"/"${domain}".conf
             sed -i "/listen 80;/a include ${NGINX_CONF_DIR}/extra/https.conf;" "${VHOST_DIR}"/"${domain}".conf
             sed -i "s|ssl_certificate ${SSL_DIR}/server/server.crt;|ssl_certificate ${SSL_DIR}/${domain}/paid/cert.pem;|g" "${VHOST_DIR}"/"${domain}".conf
@@ -220,17 +222,8 @@ _enable_cache_config() {
     if [[ -z "${ALERT}" ]]; then
         _set_cache_config
         _added_cache_config
-        if [[ "${plugins_cache}" == "wprocket" && ! -d "${NGINX_CONF_DIR}/rocket-nginx" ]]; then
-            _cd_dir "${NGINX_CONF_DIR}"
-            git clone https://github.com/satellitewp/rocket-nginx.git
-            _cd_dir "${NGINX_CONF_DIR}"/rocket-nginx
-            cp rocket-nginx.ini.disabled rocket-nginx.ini
-            php rocket-parser.php
-        fi
-
-        if [[ "${plugins_cache}" == "wprocket" && ! -f "${NGINX_CONF_DIR}/rocket-nginx/default.conf" ]]; then
-            _cd_dir "${NGINX_CONF_DIR}"/rocket-nginx
-            php rocket-parser.php
+        if [[ "${plugins_cache}" == "wprocket" && ! -f "${NGINX_CONF_DIR}/extra/rocket_nginx.conf;" ]]; then
+            cp /var/hostvn/menu/template/rocket_nginx.conf "${NGINX_CONF_DIR}"/extra/rocket_nginx.conf
         fi
 
         if nginx -t; then
@@ -257,7 +250,7 @@ _disable_cache_config() {
         printf "${RED}%s${NC}\n" "Website chua duoc cau hinh plugins cache"
     else
         if [ "${plugins_cache}" == "wprocket" ]; then
-            sed -i "/rocket-nginx/d" "${VHOST_DIR}"/"${domain}".conf
+            sed -i "/rocket_nginx.conf/d" "${VHOST_DIR}"/"${domain}".conf
         else
             sed -i "/${plugins_cache}.conf/d" "${VHOST_DIR}"/"${domain}".conf
         fi

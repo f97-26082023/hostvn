@@ -1,9 +1,5 @@
 #!/bin/bash
 
-exec 19>/opt/install.txt
-BASH_XTRACEFD=19
-set -x
-
 ######################################################################
 #           Auto Install & Optimize LEMP Stack on Ubuntu             #
 #                                                                    #
@@ -16,19 +12,21 @@ set -x
 
 # shellcheck disable=SC2207
 
+apt update && apt upgrade -y
+
 DIR=$(pwd)
 
 # Set Color
 RED='\033[0;31m'
 NC='\033[0m'
 
-SCRIPTS_VERSION="0.1.0"
+SCRIPTS_VERSION="0.2.9"
 IPADDRESS=$(curl -s http://cyberpanel.sh/?ip)
 DIR=$(pwd)
 BASH_DIR="/var/hostvn"
 GITHUB_RAW_LINK="https://raw.githubusercontent.com"
 EXT_LINK="https://scripts.hostvn.net"
-UPDATE_LINK="https://scripts.hostvn.net/update"
+UPDATE_LINK="https://scripts.hostvn.net/ubuntu/update"
 FILE_INFO="${BASH_DIR}/.hostvn.conf"
 HOSTNAME=$(hostname)
 PHP2_RELEASE="no"
@@ -41,7 +39,7 @@ AUTHOR_CONTACT="https://www.facebook.com/groups/hostvn.vn"
 PHPMYADMIN_VERSION=$(curl -s ${UPDATE_LINK}/version | grep "phpmyadmin_version=" | cut -f2 -d'=')
 MARIADB_VERSION=$(curl -s ${UPDATE_LINK}/version | grep "mariadb_version=" | cut -f2 -d'=')
 # shellcheck disable=SC2207
-PHP_LIST=($(curl -s https://scripts.hostvn.net/ubuntu/update/version | grep "php_list=" | cut -f2 -d'='))
+PHP_LIST=($(curl -s http://scripts.hostvn.net/ubuntu/update/version | grep "php_list=" | cut -f2 -d'='))
 
 # Set Lang
 OPTION_CHANGE_SSH="Ban co muon thay doi port SSH khong ? "
@@ -413,7 +411,7 @@ check_duplicate_php() {
 install_nginx(){
     apt-get install build-essential zlib1g-dev libpcre3 libpcre3-dev unzip uuid-dev -y
     apt autoremove -y
-    UPDATE_LINK="https://scripts.hostvn.net/ubuntu/update"
+    UPDATE_LINK="http://scripts.hostvn.net/ubuntu/update"
     MODULE_PATH="/usr/share/nginx_module"
     mkdir -p "${MODULE_PATH}"
     NGINX_VERSION=$(curl -s ${UPDATE_LINK}/version | grep "nginx_version=" | cut -f2 -d'=')
@@ -442,7 +440,7 @@ install_nginx(){
     wget -O- http://scripts.hostvn.net/ubuntu/modules/ngx_cache_purge-"${ngx_cache_purge_version}".tar.gz | tar -xz
     wget -O- http://scripts.hostvn.net/ubuntu/modules/openssl-OpenSSL_"${openssl_version}".tar.gz | tar -xz
     wget -O- http://scripts.hostvn.net/ubuntu/modules/pcre-"${pcre_version}".tar.gz | tar -xz
-    wget -O- https://www.zlib.net/zlib-"${zlib_version}".tar.gz | tar -xz
+    wget -O- http://scripts.hostvn.net/ubuntu/modules/zlib-"${zlib_version}".tar.gz | tar -xz
     wget -O- http://scripts.hostvn.net/ubuntu/modules/headers-more-nginx-module-"${more_clear_headers_v}".tar.gz | tar -xz
     wget -O- https://github.com/vozlt/nginx-module-vts/archive/refs/tags/v"${nginx_module_vts_v}".tar.gz | tar -xz
 
@@ -516,24 +514,19 @@ EOnginx_service
 
 install_mariadb() {
     apt-get install software-properties-common apt-transport-https -y
-#    sudo apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc' << EOF
+#    apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc' << EOF
 #
 #EOF
+#    add-apt-repository "deb [arch=amd64,arm64,ppc64el] http://sgp1.mirrors.digitalocean.com/mariadb/repo/${MARIADB_VERSION}/ubuntu $(lsb_release -cs) main" << EOF
 #
-#    OS_VER=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release | tr -d '"')
-#    if [ "${OS_VER}" == "18.04" ]; then
-#        sudo add-apt-repository "deb [arch=amd64,arm64,ppc64el] http://sgp1.mirrors.digitalocean.com/mariadb/repo/${MARIADB_VERSION}/ubuntu bionic main"
-#    elif [ "${OS_VER}" == "20.04" ]; then
-#        sudo add-apt-repository "deb [arch=amd64,arm64,ppc64el] http://sgp1.mirrors.digitalocean.com/mariadb/repo/${MARIADB_VERSION}/ubuntu focal main"
-#    else
-#        clear
-#        printf "%s" "${RED}VPS cua ban khong the ket noi toi server cua MaraiDB. Vui long kiem tra lai Network cua VPS${NC}"
-#        printf "%s" "${RED}Huy cai dat.${NC}"
-#        exit
-#    fi
-    curl -LsS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash
-    sudo apt update
-    sudo apt install mariadb-server -y
+#EOF
+
+    wget https://downloads.mariadb.com/MariaDB/mariadb_repo_setup
+    echo "b7519209546e1656e5514c04b4dcffdd9b4123201bcd1875a361ad79eb943bbe mariadb_repo_setup" | sha256sum -c -
+    chmod +x mariadb_repo_setup
+    ./mariadb_repo_setup --mariadb-server-version="mariadb-${MARIADB_VERSION}"
+    apt-get update -y
+    apt-get -y install mariadb-server mariadb-backup
 }
 
 install_php() {
@@ -645,7 +638,7 @@ install_phpmyadmin() {
     fi
     cd_dir "${DEFAULT_DIR_TOOL}"
 
-    wget -O- https://scripts.hostvn.net/modules/phpMyAdmin-"${PHPMYADMIN_VERSION}"-english.tar.gz | tar -xz
+    wget -O- http://scripts.hostvn.net/ubuntu/modules/phpMyAdmin-"${PHPMYADMIN_VERSION}"-english.tar.gz | tar -xz
 
     mv phpMyAdmin-"${PHPMYADMIN_VERSION}"-english phpmyadmin
     rm -rf phpMyAdmin-"${PHPMYADMIN_VERSION}"-english.zip
@@ -679,6 +672,7 @@ ${DECLARE}
 \$cfg['DefaultConnectionCollation'] = 'utf8_general_ci';
 EOCONFIGINC
 
+    chown -R nginx:nginx "${DEFAULT_DIR_TOOL}"/phpmyadmin
     chown -R nginx:nginx "${DEFAULT_DIR_TOOL}"/phpmyadmin
 
     cat >> "/opt/phpmyadmin.temp" <<EOphpmyadmin_temp
@@ -1101,7 +1095,7 @@ mariadb_calculation() {
 install_optipng(){
     optipng_version=$(curl -s ${UPDATE_LINK}/version | grep "optipng_version=" | cut -f2 -d'=')
     cd_dir /opt
-    wget -O- http://scripts.hostvn.net/modules/optipng-"${optipng_version}".tar.gz | tar -xz
+    wget -O- http://scripts.hostvn.net/ubuntu/modules/optipng-"${optipng_version}".tar.gz | tar -xz
     cd_dir optipng-"${optipng_version}"
     ./configure
     make
@@ -1113,7 +1107,7 @@ install_optipng(){
 install_jpegoptim(){
     jpegoptim_version=$(curl -s ${UPDATE_LINK}/version | grep "jpegoptim_version=" | cut -f2 -d'=')
     cd_dir /opt
-    wget -O- http://scripts.hostvn.net/modules/jpegoptim-RELEASE."${jpegoptim_version}".tar.gz | tar -xz
+    wget -O- http://scripts.hostvn.net/ubuntu/modules/jpegoptim-RELEASE."${jpegoptim_version}".tar.gz | tar -xz
     cd_dir jpegoptim-RELEASE."${jpegoptim_version}"
     ./configure
     make && make strip && make install
@@ -1229,7 +1223,7 @@ http {
     more_set_headers 'X-XSS-Protection          "1; mode=block" always';
     more_set_headers 'Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always';
     more_set_headers 'Referrer-Policy no-referrer-when-downgrade';
-
+    
     # Custom Variables
     map \$scheme \$https_suffix { default ''; https '-https'; }
 
@@ -1754,28 +1748,39 @@ resolver             1.1.1.1 1.0.0.1 8.8.8.8 8.8.4.4 208.67.222.222 208.67.220.2
 resolver_timeout     10s;
 EOFSSLCONF
 
-    cat >>"/etc/nginx/extra/cloudflare.conf" <<EOCF
+    cat > "/etc/nginx/extra/cloudflare.conf" << END
 real_ip_header X-Forwarded-For;
-EOCF
-    for ipv4 in `curl https://www.cloudflare.com/ips-v4` ; do
-        cat >>"/etc/nginx/extra/cloudflare.conf" <<EOcf_ipv4
-set_real_ip_from $ipv4;
-EOcf_ipv4
-    done
+set_real_ip_from 173.245.48.0/20;
+set_real_ip_from 103.21.244.0/22;
+set_real_ip_from 103.22.200.0/22;
+set_real_ip_from 103.31.4.0/22;
+set_real_ip_from 141.101.64.0/18;
+set_real_ip_from 108.162.192.0/18;
+set_real_ip_from 190.93.240.0/20;
+set_real_ip_from 188.114.96.0/20;
+set_real_ip_from 197.234.240.0/22;
+set_real_ip_from 198.41.128.0/17;
+set_real_ip_from 162.158.0.0/15;
+set_real_ip_from 104.16.0.0/13;
+set_real_ip_from 104.24.0.0/14;
+set_real_ip_from 172.64.0.0/13;
+set_real_ip_from 131.0.72.0/22;
+set_real_ip_from 2400:cb00::/32;
+set_real_ip_from 2606:4700::/32;
+set_real_ip_from 2803:f800::/32;
+set_real_ip_from 2405:b500::/32;
+set_real_ip_from 2405:8100::/32;
+set_real_ip_from 2a06:98c0::/29;
+set_real_ip_from 2c0f:f248::/32;
+END
 
-    for ipv6 in `curl https://www.cloudflare.com/ips-v6` ; do
-        cat >>"/etc/nginx/extra/cloudflare.conf" <<EOcf_ipv6
-set_real_ip_from $ipv6;
-EOcf_ipv6
-    done
-
-    cron_cf_exists=$(crontab -l | grep -w 'updateCloudflareRangeIP')
-    if [ -z "${cron_cf_exists}" ]; then
-        crontab -l > updateCf
-        echo "0 3 * * * bash /var/hostvn/menu/cronjob/updateCloudflareRangeIP >/dev/null 2>&1" >> updateCf
-        crontab updateCf
-        rm -rf updateCf
-    fi
+    # cron_cf_exists=$(crontab -l | grep -w 'updateCloudflareRangeIP')
+    # if [ -z "${cron_cf_exists}" ]; then
+    #     crontab -l > updateCf
+    #     echo "0 3 * * * bash /var/hostvn/menu/cronjob/updateCloudflareRangeIP >/dev/null 2>&1" >> updateCf
+    #     crontab updateCf
+    #     rm -rf updateCf
+    # fi
 
 #    cat >>"/etc/nginx/extra/cloudflare.conf" <<EOCF
 #real_ip_header X-Forwarded-For;
@@ -1863,7 +1868,6 @@ EOSTATICFILES
     cat >>"/etc/nginx/extra/security.conf" <<EOsecurity
 location ^~ /GponForm/ { deny all; access_log off; log_not_found off; }
 location ^~ /GponForm/diag_Form { deny all; access_log off; log_not_found off; }
-location ^~ /vendor/phpunit/ { deny all; access_log off; log_not_found off; }
 # Return 403 forbidden for readme.(txt|html) or license.(txt|html) or example.(txt|html) or other common git repository files
 location ~*  "/(^\$|readme|license|example|LICENSE|README|LEGALNOTICE|INSTALLATION|CHANGELOG)\.(txt|html|md)" {
     deny all;
@@ -1890,7 +1894,7 @@ location / { try_files \$uri \$uri/ /index.php?\$query_string; }
 EOrewrite_default
 
     cat >>"${REWRITE_CONFIG_PATH}/codeigniter.conf" <<EOrewrite_ci
-location / { try_files \$uri \$uri/ /index.php\$args; }
+location / { try_files \$uri \$uri/ /index.php?/\$request_uri; }
 EOrewrite_ci
 
     cat >>"${REWRITE_CONFIG_PATH}/discuz.conf" <<EOrewrite_discuz
@@ -2338,7 +2342,7 @@ group = nginx
 pm = ondemand
 pm.max_children = ${PM_MAX_CHILDREN}
 pm.max_requests = ${PM_MAX_REQUEST}
-pm.process_idle_timeout = 10s
+pm.process_idle_timeout = 20
 ;slowlog = /var/log/php-fpm/www-slow.log
 chdir = /
 php_admin_value[error_log] = /var/log/php-fpm/www-error.log
@@ -2347,7 +2351,7 @@ php_value[session.save_handler] = files
 php_value[session.save_path]    = /var/lib/php/session
 php_value[soap.wsdl_cache_dir]  = /var/lib/php/wsdlcache
 php_admin_value[disable_functions] = exec,system,passthru,shell_exec,proc_close,proc_open,dl,popen,show_source,posix_kill,posix_mkfifo,posix_getpwuid,posix_setpgid,posix_setsid,posix_setuid,posix_setgid,posix_seteuid,posix_setegid,posix_uname
-php_admin_value[open_basedir] = ${DEFAULT_DIR_TOOL}/:/tmp/:/var/tmp/:/dev/urandom:/usr/share/php/:/dev/shm:/var/lib/php/sessions/
+php_admin_value[open_basedir] = /usr/share/nginx/:/tmp/:/var/tmp/:/dev/urandom:/usr/share/php/:/dev/shm:/var/lib/php/sessions/:/usr/share/doc:/var/www/:/usr/local/apache2/htdocs/
 security.limit_extensions = .php
 EOwww_conf
 
@@ -2398,7 +2402,7 @@ group = nginx
 pm = ondemand
 pm.max_children = ${PM_MAX_CHILDREN}
 pm.max_requests = ${PM_MAX_REQUEST}
-pm.process_idle_timeout = 10s
+pm.process_idle_timeout = 20
 ;slowlog = /var/log/php2-fpm/www-slow.log
 chdir = /
 php_admin_value[error_log] = /var/log/php2-fpm/www-error.log
@@ -2443,8 +2447,6 @@ mysqlnd.net_cmd_buffer_size = 16384
 mysqlnd.collect_memory_statistics = Off
 mysqlnd.mempool_default_size = 16000
 always_populate_raw_post_data=-1
-mysqli.allow_local_infile = Off
-register_globals = Off
 error_reporting = E_ALL & ~E_NOTICE
 EOhostvn_custom_ini
 
@@ -2475,8 +2477,6 @@ mysqlnd.net_cmd_buffer_size = 16384
 mysqlnd.collect_memory_statistics = Off
 mysqlnd.mempool_default_size = 16000
 always_populate_raw_post_data=-1
-mysqli.allow_local_infile = Off
-register_globals = Off
 error_reporting = E_ALL & ~E_NOTICE
 EOhostvn_custom_ini_2
 
@@ -2781,7 +2781,8 @@ change_ssh_port() {
 # Install ACME
 ############################################
 install_acme() {
-    curl https://get.acme.sh | sh -s email="${ADMIN_EMAIL}"
+    # curl https://get.acme.sh | sh -s email="${ADMIN_EMAIL}"
+    curl https://get.acme.sh | sh
 }
 
 ############################################
@@ -3441,10 +3442,6 @@ kernel_tweak(){
 
 # Controls the System Request debugging functionality of the kernel
 kernel.sysrq = 0
-
-#kernel.msgmni = 1024
-#kernel.sem = 500 256000 64 1024
-#fs.inotify.max_user_watches = 262144
 
 # Controls whether core dumps will append the PID to the core filename.
 # Useful for debugging multi-threaded applications.

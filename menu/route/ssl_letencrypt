@@ -21,6 +21,7 @@ while [ "${CHOICE}" != "0" ]; do
     printf "%s2. ${lang_register} SSL Alias domain%s\n" "${GREEN}" "${NC}"
     printf "%s3. ${lang_remove} Let's Encrypt%s\n" "${GREEN}" "${NC}"
     printf "%s4. CloudFlare DNS API%s\n" "${GREEN}" "${NC}"
+    printf "%s5. Renew all SSL%s\n" "${GREEN}" "${NC}"
     #    printf "%s2. Let's Encrypt Wildcard%s\n" "${GREEN}" "${NC}"
     #    printf "%s3. Cau hinh Wildcard cho Subdomain%s\n" "${GREEN}" "${NC}"
     #    printf "%s4. Kiem tra thoi han%s\n" "${GREEN}" "${NC}"
@@ -50,6 +51,10 @@ while [ "${CHOICE}" != "0" ]; do
         #        2) clear; le_wildcard ;;
         #        3) clear; le_wildcard_subdomain ;;
         #        4) clear; le_check_expired ;;
+    5)
+        clear
+        force_renew_all_ssl
+        ;;
     0)
         clear
         menu_ssl

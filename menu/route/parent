@@ -94,6 +94,10 @@ ssl_le_cf_api(){
     . /var/hostvn/menu/controller/ssl/cf_api
 }
 
+force_renew_all_ssl(){
+    . /var/hostvn/menu/controller/ssl/renew_all_ssl
+}
+
 menu_cache(){
     . /var/hostvn/menu/route/cache
 }
@@ -336,6 +340,10 @@ wordpress_plugin_cache(){
 
 wordpress_webp_express(){
     . /var/hostvn/menu/controller/wordpress/webp_express
+}
+
+wordpress_lockdown_manage(){
+    . /var/hostvn/menu/controller/wordpress/wordpress_lockdown
 }
 
 wordpress_cache_key(){

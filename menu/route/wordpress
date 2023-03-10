@@ -26,7 +26,8 @@ do
     printf "${GREEN}%s${NC}\n" "6. Move wp-config path"
     printf "${GREEN}%s${NC}\n" "7. Protect wp-admin"
     printf "${GREEN}%s${NC}\n" "8. Enable/Disable edit theme, plugins"
-    printf "${GREEN}%s${NC}\n" "9. Advanced"
+    printf "${GREEN}%s${NC}\n" "9. WordPress Lockdown"
+    printf "${GREEN}%s${NC}\n" "10. Advanced"
     printf "${GREEN}%s${NC}\n" "==============================================="
     read -r -p " ${SELECT_OPTION} " CHOICE
     if [ -z "${CHOICE}" ]
@@ -43,7 +44,8 @@ do
         6) clear; wordpress_move_wp_config ;;
         7) clear; wordpress_htpasswd_wp_admin ;;
         8) clear; wordpress_disable_edit_theme_plugins ;;
-        9) clear; wordpress_advanced_menu ;;
+        9) clear; wordpress_lockdown_manage ;;
+        10) clear; wordpress_advanced_menu ;;
         0) clear; menu_primary ;;
         *) clear; printf "%s\n" "${RED}${WRONG_OPTION}${NC}";;
     esac

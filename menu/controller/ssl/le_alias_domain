@@ -15,7 +15,7 @@ source /var/hostvn/menu/helpers/function
 
 _validate() {
     check_nginx_status
-    check_a_record "${domain}"
+#    check_a_record "${domain}"
 }
 
 _select_alias_domain() {
@@ -33,7 +33,7 @@ _select_alias_domain() {
         if [ ${#domains[@]} -eq 0 ]; then
             ALERT=$(printf "%s\n" "${RED}Toan bo Alias domain da duoc cau hinh SSL.${NC}")
         else
-            echo "Lua chon website"
+            echo "Select website"
             PS3="${INPUT_SELECT} [0 = Thoat]: "
             select alias_opt in "${domains[@]}"; do
                 domain=$alias_opt
@@ -134,7 +134,7 @@ _run() {
     else
         clear
         echo
-        printf "%s\n" "${RED}Ban da chon huy thao tac.${NC}"
+        printf "%s\n" "${RED}${lang_cancel_action}${NC}"
         echo
     fi
 }
@@ -147,9 +147,15 @@ _select_alias_domain
 
 if [[ -z "${domain}" && -z "${ALERT}" ]]; then
     clear
-    printf "%s\n" "${RED}Ban da chon huy thao tac${NC}"
+    printf "%s\n" "${RED}${lang_cancel_action}${NC}"
 else
     if [ -z "${ALERT}" ]; then
+        if [ ! -d "/root/.acme.sh" ]; then
+            curl https://get.acme.sh | sh -s email="${admin_email}"
+        fi
+
+        clear
+
         _run
         if nginx -t; then
             _restart_service

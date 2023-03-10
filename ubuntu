@@ -10,7 +10,7 @@
 #  Please do not copy under any circumstance for commercial reason!  #
 ######################################################################
 
-OS_VER=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release | tr -d '"')
+OS_VER=$(grep -w "VERSION_ID=" "/etc/os-release" | cut -f2 -d'=' | cut -f2 -d'"')
 LIST_OS_VER_SUPPORT=('18.04' '20.04')
 rm -rf ubuntu
 
@@ -31,6 +31,11 @@ welcome(){
     sleep 3
 }
 
+apt update -y
+apt upgrade -y
+apt autoremove -y
+
+
 ###################
 # Prepare Install #
 ###################
@@ -39,7 +44,7 @@ fixed_lock_frontend(){
     killall apt apt-get
     rm -rf /var/lib/apt/lists/lock
     rm -rf /var/cache/apt/archives/*
-    rm -rf /var/lib/dpkg/*
+    rm -rf /var/lib/dpkg/lock-frontend
 }
 
 # Remove unnecessary services
@@ -121,9 +126,6 @@ EOsource_list
 }
 
 install_requirement(){
-    apt-get update -y
-    apt-get upgrade -y
-    apt-get autoremove -y
     apt-get install build-essential gcc g++ make flex bison openssl libssl-dev perl perl-base perl-modules libperl-dev \
         libperl4-corelibs-perl libwww-perl libaio1 libaio-dev gifsicle webp libde265-dev \
         zlib1g zlib1g-dev libcap-dev cron bzip2 zip automake autoconf libtool cmake python libdb-dev libsasl2-dev \
@@ -200,8 +202,8 @@ welcome
 if [[ " ${LIST_OS_VER_SUPPORT[*]} " == *" ${OS_VER} "* ]]; then
     #fixed_lock_frontend
     remove_old_service
-    set_dns_server
-    create_source_list
+    #set_dns_server
+    # create_source_list
     install_requirement
     create_swap
     set_timezone

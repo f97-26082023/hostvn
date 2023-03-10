@@ -88,17 +88,21 @@ else
         clear
         _install_php_redis_admin
         clear
+
+        notify_install_redis=''
         if service_running "redis"; then
             notify_install_redis="Cai dat Redis thanh cong."
         else
             notify_install_redis="Cai dat Redis that bai hoac Redis khong hoat dong."
         fi
 
+        notify_install_php1_redis=''
         check_php1_redis=$(php"${php1_version}" -m | grep redis)
         if [ -z "$check_php1_redis" ]; then
             notify_install_php1_redis="Cai dat Redis Extension cho PHP 1 khong thanh cong."
         fi
 
+        notify_install_php2_redis=''
         if [ "${php2_release}" == "yes" ]; then
             check_php2_redis=$(php"${php2_version}" -m | grep redis)
             if [[ -z "$check_php2_redis" ]]; then

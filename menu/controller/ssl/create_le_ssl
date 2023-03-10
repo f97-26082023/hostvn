@@ -14,7 +14,7 @@ source /var/hostvn/menu/validate/rule
 source /var/hostvn/menu/helpers/function
 
 printf "%s========================%s\n" "${GREEN}" "${NC}"
-printf "%s Cau hinh Let's Encrypt %s\n" "${GREEN}" "${NC}"
+printf "%s  Config Let's Encrypt  %s\n" "${GREEN}" "${NC}"
 printf "%s========================%s\n" "${GREEN}" "${NC}"
 echo
 
@@ -101,14 +101,58 @@ _method_verify() {
     done
 }
 
+_remove_ssl_cert(){
+    rm -rf "${SSL_DIR}"/"${domain}"/key.pem
+    rm -rf "${SSL_DIR}"/"${domain}"/cert.pem
+    rm -rf /root/.acme.sh/"${domain}"
+    sed -i '/https.conf/d' "${VHOST_DIR}"/"${domain}".conf
+    sed -i '/ssl_certificate/d' "${VHOST_DIR}"/"${domain}".conf
+    sed -i '/ssl_certificate_key/d' "${VHOST_DIR}"/"${domain}".conf
+    sed -i "/listen 443/a ssl_certificate /etc/nginx/ssl/server/server.crt;" "${VHOST_DIR}"/"${domain}".conf
+    sed -i "/listen 443/a ssl_certificate_key /etc/nginx/ssl/server/server.key;" "${VHOST_DIR}"/"${domain}".conf
+    sed -i "/listen 443/a return 404;" "${VHOST_DIR}"/"${domain}".conf
+
+    if nginx -t; then
+        _restart_service
+        clear
+    fi
+}
+
 _sign_ssl() {
+    if [ ! -d "/root/.acme.sh" ]; then
+        if [ -z "${admin_email}" ]; then
+            while true
+            do
+                read -r -p "${INPUT_EMAIL}" admin_email
+                echo
+                if [[ "${admin_email}" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$ ]]; then
+                    break
+                else
+                    clear
+                    printf "%s\n"  "${RED}${WRONG_EMAIL}${NC}"
+                fi
+            done
+        fi
+
+        curl https://get.acme.sh | sh -s email="${admin_email}"
+    fi
+
     if [ -d "/root/.acme.sh/${domain}" ]; then
         rm -rf /root/.acme.sh/"${domain}"
     fi
+
     /root/.acme.sh/acme.sh --upgrade
     clear
 
+    _remove_ssl_cert
+
     if [[ -n "${method}" && "${method}" == "cf_api" ]]; then
+        CF_Key=$(grep -w "CF_Key" "/var/hostvn/.cloudflare.conf")
+        CF_Email=$(grep -w "CF_Email" "/var/hostvn/.cloudflare.conf")
+
+        export CF_Key="${CF_Key}"
+        export CF_Email="${CF_Email}"
+
         if [ "${domain_type}" == "2" ]; then
             if [ "${ssl_type}" == "1" ]; then
                 /root/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}" --server letsencrypt --force
@@ -127,15 +171,15 @@ _sign_ssl() {
     else
         if [ "${domain_type}" == "2" ]; then
             if [ "${ssl_type}" == "1" ]; then
-                /root/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}" --server letsencrypt --force
+                /root/.acme.sh/acme.sh --issue --nginx "${VHOST_DIR}"/"${domain}".conf -d "${domain}" --server letsencrypt --force
             else
-                /root/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}" --force
+                /root/.acme.sh/acme.sh --issue --nginx "${VHOST_DIR}"/"${domain}".conf -d "${domain}" --force
             fi
         else
             if [ "${ssl_type}" == "1" ]; then
-                /root/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}" -d "www.${domain}" --server letsencrypt --force
+                /root/.acme.sh/acme.sh --issue --nginx "${VHOST_DIR}"/"${domain}".conf -d "${domain}" -d "www.${domain}" --server letsencrypt --force
             else
-                /root/.acme.sh/acme.sh --issue --dns dns_cf -d "${domain}" -d "www.${domain}" --force
+                /root/.acme.sh/acme.sh --issue --nginx "${VHOST_DIR}"/"${domain}".conf -d "${domain}" -d "www.${domain}" --force
             fi
         fi
     fi
@@ -176,16 +220,16 @@ _run() {
         check_nginx_status
 
         if [ -z "${ALERT}" ]; then
-            if [ -f "/root/.acme.sh/account.conf" ]; then
-                check_cf_config=$(grep -w "CF_Key" "/root/.acme.sh/account.conf")
+            if [ -f "/var/hostvn/.cloudflare.conf" ]; then
+                check_cf_config=$(grep -w "CF_Key" "/var/hostvn/.cloudflare.conf")
                 if [ -n "${check_cf_config}" ]; then
                     _method_verify
                 fi
             fi
 
-            if [ "${method}" == "http" ]; then
-                check_a_record "${domain}"
-            fi
+#            if [ "${method}" == "http" ]; then
+#                check_a_record "${domain}"
+#            fi
         fi
 
         if [ -z "${ALERT}" ]; then
@@ -227,7 +271,7 @@ _run() {
     else
         clear
         echo
-        printf "%s\n" "${RED}Ban da chon huy thao tac.${NC}"
+        printf "%s\n" "${RED}${lang_cancel_action}${NC}"
         echo
     fi
 }
@@ -236,23 +280,33 @@ ALERT=""
 domain=""
 method=""
 cancel=""
-check_ssl_config=""
 
 _select_domain
 if [[ -z "${domain}" && -z "${ALERT}" ]]; then
     clear
     echo
-    printf "%s\n" "${RED}Ban da chon huy thao tac.${NC}"
+    printf "%s\n" "${RED}${lang_cancel_action}${NC}"
     echo
 else
     if [ -z "${ALERT}" ]; then
-        check_ssl_config=$(grep -w "https.conf" "${VHOST_DIR}"/"${domain}".conf)
-        if [ -n "${check_ssl_config}" ]; then
-            clear
-            printf "%s\n" "${RED}Ten mien da duoc cau hinh SSL. Vui long xoa cau hinh SSL cu truoc.${NC}"
-        else
-            _run
+        if [ ! -d "/root/.acme.sh" ]; then
+            curl https://get.acme.sh | sh -s email="${admin_email}"
         fi
+
+        clear
+
+#        check_ssl_config=$(grep -w "https.conf" "${VHOST_DIR}"/"${domain}".conf)
+
+        _run
+#        check_ssl_cert=${SSL_DIR}/${domain}/cert.pem
+#        check_ssl_key=${SSL_DIR}/${domain}/key.pem
+#
+#        if [[ -f "${check_ssl_cert}" && -f "$check_ssl_key" && -s "${check_ssl_cert}" && -s "$check_ssl_key" ]]; then
+#            clear
+#            printf "%s\n" "${RED}Ten mien da duoc cau hinh SSL. Vui long xoa cau hinh SSL cu truoc.${NC}"
+#        else
+#            _run
+#        fi
     else
         clear
         echo

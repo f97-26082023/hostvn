@@ -69,9 +69,15 @@ _destroy_alias_domain() {
         clear
         printf "%s\n" "${RED}Huy thao tac.${NC}"
     else
-        rm -rf "${ALIAS_DIR}"/"${alias_domain}".conf
-        rm -rf "/root/.acme.sh/${alias_domain}"
-        rm -rf "${SSL_DIR}/${alias_domain}"
+        if [ -f "${ALIAS_DIR}"/"${alias_domain}".conf ]; then
+            rm -rf "${ALIAS_DIR}"/"${alias_domain}".conf
+        fi
+        if [ -d "/root/.acme.sh/${alias_domain}" ]; then
+            rm -rf "/root/.acme.sh/${alias_domain}"
+        fi
+        if [ -d "${SSL_DIR}/${alias_domain}" ]; then
+            rm -rf "${SSL_DIR}/${alias_domain:?}"
+        fi
 
         include_lists=$(grep -i "${alias_domain}" "${VHOST_DIR}"/*.conf | cut -f1 -d':')
 

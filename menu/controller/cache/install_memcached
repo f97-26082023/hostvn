@@ -107,17 +107,21 @@ else
         clear
         _install_php_memcached_admin
         clear
+
+        notify_install_memcached=''
         if service_running "memcached"; then
             notify_install_memcached="Cai dat memcached thanh cong."
         else
              notify_install_memcached="Cai dat memcached that bai hoac memcached khong hoat dong."
         fi
 
+        notify_install_php1_memcached=''
         check_php1_memcached=$(php"${php1_version}" -m | grep memcached)
         if [ -z "$check_php1_memcached" ]; then
             notify_install_php1_memcached="Cai dat Memcached Extension cho PHP 1 khong thanh cong."
         fi
 
+        notify_install_php2_memcached=''
         if [ "${php2_release}" == "yes" ]; then
             check_php2_memcached=$(php"${php2_version}" -m | grep memcached)
             if [[ -z "$check_php2_memcached" ]]; then

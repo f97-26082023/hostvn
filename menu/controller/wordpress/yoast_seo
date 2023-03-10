@@ -161,7 +161,7 @@ _enable_yoast_seo() {
             if [ "${plugin_cache}" != "wprocket" ]; then
                 sed -i "s|PLUGIN_CACHE|include ${NGINX_CONF_DIR}/wordpress/${plugin_cache}.conf;|g" "${VHOST_DIR}"/"${domain}".conf
             else
-                sed -i "s|PLUGIN_CACHE|include ${NGINX_CONF_DIR}/rocket-nginx/default.conf;|g" "${VHOST_DIR}"/"${domain}".conf
+                sed -i "s|PLUGIN_CACHE|include ${NGINX_CONF_DIR}/extra/rocket_nginx.conf;|g" "${VHOST_DIR}"/"${domain}".conf
             fi
         else
             sed -i '/PLUGIN_CACHE/d' "${VHOST_DIR}"/"${domain}".conf
@@ -201,7 +201,6 @@ _enable_yoast_seo() {
             expired_date=$(echo "(" "$(date -d "$(openssl x509 -in "${SSL_DIR}"/"${domain}"/paid/cert.pem -text -noout | grep "Not After" | cut -c 25-)" +%s)" - "$(date -d "now" +%s)" ")" / 86400 | bc)
             if [[ -n ${expired_date} && ${expired_date} -gt 0 ]]; then
                 sed -i '/return 404;/d' "${VHOST_DIR}"/"${domain}".conf
-                sed -i '/error_page 404/d' "${VHOST_DIR}"/"${domain}".conf
                 sed -i '/error_page 404/d' "${VHOST_DIR}"/"${domain}".conf
                 sed -i '/https.conf;/d' "${VHOST_DIR}"/"${domain}".conf
                 sed -i "/listen 80;/a include ${NGINX_CONF_DIR}/extra/https.conf;" "${VHOST_DIR}"/"${domain}".conf

@@ -27,13 +27,14 @@ _select_ssl_le_website(){
         for le_entry in .*.conf; do
             domain=${le_entry/./}
             domain=${domain//.conf/}
-            check_ssl_config=$(grep -w "ssl_certificate" "${VHOST_DIR}/${domain}.conf")
-            if [[ -f "${SSL_DIR}/${domain}/key.pem" && -f "${SSL_DIR}/${domain}/cert.pem" && -s "${SSL_DIR}/${domain}/key.pem" && -s "${SSL_DIR}/${domain}/cert.pem" && -n "${check_ssl_config}" ]]; then
-                le_domains+=("${domain}")
-            fi
+#            check_ssl_config=$(grep -w "ssl_certificate" "${VHOST_DIR}/${domain}.conf")
+#            if [[ -f "${SSL_DIR}/${domain}/key.pem" && -f "${SSL_DIR}/${domain}/cert.pem" && -s "${SSL_DIR}/${domain}/key.pem" && -s "${SSL_DIR}/${domain}/cert.pem" && -n "${check_ssl_config}" ]]; then
+#                le_domains+=("${domain}")
+#            fi
+            le_domains+=("${domain}")
         done
         if [ ${#le_domains[@]} -eq 0 ]; then
-            ALERT=$(printf "%s\n" "${RED}Chua co website nao duoc cai dat SSL.${NC}")
+            ALERT=$(printf "%s\n" "${RED}Khong tim thay website nao.${NC}")
         else
             echo "Lua chon website"
             PS3="${INPUT_SELECT} [0 = Thoat]: "
